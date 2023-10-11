@@ -36,12 +36,12 @@ public class badSmells {
                 System.out.println("Warning: long parameter list in method " + md.getName() + "!");
             }
 
-            // Long Method (Easy: counting all lines of code - not including the method header or closing curly bracket)
+            // Long Method (Easy: counting all lines of code - only including lines from the method body)
             if((body.getEnd().get().line) - (body.getBegin().get().line) -1 > 20){
                 System.out.println("Warning: method " + md.getName() + " contains too many lines of code!");
             }
 
-            // Long Method (Medium: counting statements - not including the method header or closing curly bracket)
+            // Long Method (Medium: counting statements - only including lines from the method body)
             if(body.getStatements().size() > 20) {
                 System.out.println("Warning: method " + md.getName() + " contains too many statements!");
             }
@@ -51,9 +51,9 @@ public class badSmells {
 
         public void visit(ClassOrInterfaceDeclaration cd, Object arg) {
 
-            // Large Class (Easy: counting all lines of code - not including the class header or closing curly bracket)
+            // Large Class (Easy: counting all lines of code - only including lines from the method body)
             if((cd.getEnd().get().line) - (cd.getBegin().get().line) - 1 > 100){
-                System.out.println("Warning: class " + cd.getName() + " contains too many lines");
+                System.out.println("Warning: class " + cd.getNameAsString() + " contains too many lines");
             }
 
             int statementCounter = 0;
