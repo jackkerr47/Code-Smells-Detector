@@ -6,14 +6,13 @@ import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.VariableDeclarationExpr;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
-
 import java.io.FileInputStream;
 
 
 public class badSmells {
 
     public static void main(String[] args) throws Exception {
-        FileInputStream in = new FileInputStream("FILETOBEANALYSED.java");
+        FileInputStream in = new FileInputStream("AoT.java");
 
         CompilationUnit cu;
         try {
@@ -25,12 +24,10 @@ public class badSmells {
         new ClassDiagramVisitor().visit(cu, null);
     }
 
-    /**
-     * Simple visitor implementation for extracting class relationship information
-     */
+
     private static class ClassDiagramVisitor extends VoidVisitorAdapter {
 
-        public void visit(ClassOrInterfaceDeclaration n, Object arg){
+        /* public void visit(ClassOrInterfaceDeclaration n, Object arg){
             System.out.println("Class Name: " + n.getName());
             System.out.println("Class Implements: ");
             for (ClassOrInterfaceType coi : n.getImplementedTypes()) {
@@ -44,7 +41,7 @@ public class badSmells {
             for(VariableDeclarator v : n.getVariables()){
                 System.out.println("Name: " + v.getName());
             }
-        }
+        } */
     }
     //TEST JOBBY HANDS
 }
