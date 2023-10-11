@@ -46,5 +46,4 @@ public class badSmells {
             }
         }
     }
-    //TEST JOBBY HANDS
 }
