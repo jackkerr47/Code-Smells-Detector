@@ -12,7 +12,7 @@ import java.lang.reflect.Method;
 
 public class badSmells {
 
-        public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception {
         FileInputStream in = new FileInputStream("AoT.java");
 
         CompilationUnit cu;
@@ -60,17 +60,30 @@ public class badSmells {
             NodeList<BodyDeclaration<?>> members = cd.getMembers();
 
             for(BodyDeclaration member : members){
-               statementCounter += totalClassSize(member, statementCounter);
+               //statementCounter += totalClassSize(member, statementCounter);
+                if(member.isFieldDeclaration()) {
+                    statementCounter++;
+                }
+                if(member.isMethodDeclaration()){
+                    MethodDeclaration method = (MethodDeclaration) member;
+                    statementCounter += method.getBody().get().getStatements().size() + 2;
+                }
+                if(member.isClassOrInterfaceDeclaration()) {
+                    statementCounter +=2;
+                    member.accept(this,null);
+
+                    //bd.remove(); // NEED TO REMOVE THE CLASS HEADER AND CLOSING CURLY BRACKET HERE BEFORE PASSING CLASS BACK IN TO PREVENT INFINTE LOOP!!!!!!!
+                    //counter += totalClassSize(bd, counter);
+                }
             }
 
-            System.out.println("statement counter " + statementCounter);
+            System.out.println("statement counter = " + statementCounter + " - in class " + cd.getNameAsString());
 
             super.visit(cd, arg);
         }
 
-        public static int totalClassSize(BodyDeclaration bd, int statementCounter) {
+        public int totalClassSize(BodyDeclaration bd, int statementCounter) {
             int counter = statementCounter;
-
 
             if(bd.isFieldDeclaration()) {
                 counter++;
@@ -80,8 +93,9 @@ public class badSmells {
                 counter += method.getBody().get().getStatements().size() + 2;
             }
             if(bd.isClassOrInterfaceDeclaration()) {
-                bd.remove(); // NEED TO REMOVE THE CLASS HEADER AND CLOSING CURLY BRACKET HERE BEFORE PASSING CLASS BACK IN TO PREVENT INFINTE LOOP!!!!!!!
-                counter += totalClassSize(bd, counter);
+                bd.accept(this,null);
+                //bd.remove(); // NEED TO REMOVE THE CLASS HEADER AND CLOSING CURLY BRACKET HERE BEFORE PASSING CLASS BACK IN TO PREVENT INFINTE LOOP!!!!!!!
+                //counter += totalClassSize(bd, counter);
             }
 
             return counter;
