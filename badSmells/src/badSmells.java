@@ -4,7 +4,9 @@ import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.stmt.BlockStmt;
+import com.github.javaparser.ast.stmt.IfStmt;
 import com.github.javaparser.ast.stmt.Statement;
+import com.github.javaparser.ast.stmt.WhileStmt;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import java.io.FileInputStream;
 import java.lang.reflect.Method;
@@ -51,17 +53,12 @@ public class badSmells {
             //System.out.println(body.getStatements().size())
             int statementCounter = 0;
             for (Statement s : body.getStatements()) {
-
+                System.out.println(s.getChildNodesByType(VariableDeclarator.class));
                 statementCounter++;
                 if(s.getChildNodes().size() >= 1){
-                    getChildNodes(s.getChildNodes(),statementCounter);
+                    statementCounter += getChildNodes(s.getChildNodes(),statementCounter);
                 }
 
-                /*if(s.getChildNodes().size() > 1) {
-                    statementCounter += s.getChildNodes().size();
-                } else {
-                    statementCounter++;
-                }*/
                 /*System.out.println("Statement : " + s);
                 if (s.isWhileStmt() || s.isIfStmt()) {
 
@@ -70,7 +67,7 @@ public class badSmells {
                 }*/
                 //statementCounter = statementVisitor(s,statementCounter);
             }
-            System.out.println("Final statement counter = " + statementCounter + " for method " + md.getName());
+            System.out.println("Final statement counter = " + statementCounter + " for method " + md.getName() + "\n");
             super.visit(md, arg);
         }
 
@@ -78,36 +75,11 @@ public class badSmells {
             for(Node n : nodeList){
                 statementCounter += nodeList.size();
                 if(n.getChildNodes().size() > 1){
-                    getChildNodes(n.getChildNodes(),statementCounter);
+                    statementCounter = getChildNodes(n.getChildNodes(),statementCounter);
                 }
             }
             return statementCounter;
         }
-
-
-        /*public int statementVisitor(Statement s, int statementCounter) {
-
-            statementCounter++;
-
-            /*for(Node n : s.getChildNodes()) {
-                System.out.println(n + "-CHILD-");
-                System.out.println(n.getChildNodes() + "-CHILDREN-");
-                for(Node m : n.getChildNodes()){
-                    if(m.getChildNodes().size() == 1){
-                        System.out.println("Child node is " + m);
-                    }else{
-                        System.out.println("Child node has more and is " + m);
-                        System.out.println(m.getChildNodes());
-                    }
-                }
-            }
-
-
-            if (s.isWhileStmt() || s.isIfStmt()) {
-                System.out.println("accept called");
-            }
-            return statementCounter;
-        }*/
 
         public void visit(ClassOrInterfaceDeclaration cd, Object arg) {
 
@@ -130,15 +102,11 @@ public class badSmells {
                 }
                 if(member.isClassOrInterfaceDeclaration()) {
                     statementCounter +=2;
-                    System.out.println("hdbbfjdnf");
                     //member.accept(this,null);
-
-                    //bd.remove(); // NEED TO REMOVE THE CLASS HEADER AND CLOSING CURLY BRACKET HERE BEFORE PASSING CLASS BACK IN TO PREVENT INFINTE LOOP!!!!!!!
-                    //counter += totalClassSize(bd, counter);
                 }
             }
 
-            System.out.println("statement counter = " + statementCounter + " - in class " + cd.getNameAsString());
+            //System.out.println("statement counter = " + statementCounter + " - in class " + cd.getNameAsString());
 
             super.visit(cd, arg);
         }
