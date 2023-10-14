@@ -8,6 +8,8 @@ import com.github.javaparser.ast.stmt.IfStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.stmt.WhileStmt;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
+
+import javax.swing.plaf.nimbus.State;
 import java.io.FileInputStream;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -53,32 +55,13 @@ public class badSmells {
             //System.out.println(body.getStatements().size())
             int statementCounter = 0;
             for (Statement s : body.getStatements()) {
-                System.out.println(s.getChildNodesByType(VariableDeclarator.class));
                 statementCounter++;
-                if(s.getChildNodes().size() >= 1){
-                    statementCounter += getChildNodes(s.getChildNodes(),statementCounter);
+                if((s.isIfStmt() && s.isWhileStmt()) && s.getChildNodes().size() >= 1){
+                    
                 }
-
-                /*System.out.println("Statement : " + s);
-                if (s.isWhileStmt() || s.isIfStmt()) {
-
-                    System.out.println("accept called");
-                    s.accept(this, null);
-                }*/
-                //statementCounter = statementVisitor(s,statementCounter);
             }
             System.out.println("Final statement counter = " + statementCounter + " for method " + md.getName() + "\n");
             super.visit(md, arg);
-        }
-
-        public int getChildNodes(List<Node> nodeList, int statementCounter) {
-            for(Node n : nodeList){
-                statementCounter += nodeList.size();
-                if(n.getChildNodes().size() > 1){
-                    statementCounter = getChildNodes(n.getChildNodes(),statementCounter);
-                }
-            }
-            return statementCounter;
         }
 
         public void visit(ClassOrInterfaceDeclaration cd, Object arg) {
