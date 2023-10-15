@@ -14,6 +14,10 @@ public class AoT {
             if("jobby" == "hands") {
                 System.out.println("awdfighawyuief");
             }
+
+            if("ass" == "tiddies") {
+
+            }
         }
         while (i < 5) {
             System.out.println(i);

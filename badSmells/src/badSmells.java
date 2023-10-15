@@ -1,26 +1,20 @@
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.body.*;
+import com.github.javaparser.ast.body.BodyDeclaration;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.stmt.BlockStmt;
-import com.github.javaparser.ast.stmt.IfStmt;
 import com.github.javaparser.ast.stmt.Statement;
-import com.github.javaparser.ast.stmt.WhileStmt;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
-import javax.sound.sampled.Line;
-import javax.swing.plaf.nimbus.State;
 import java.io.FileInputStream;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class badSmells {
 
     public static void main(String[] args) throws Exception {
-        FileInputStream in = new FileInputStream("AoT.java");
+        FileInputStream in = new FileInputStream("Grid.java");
 
         CompilationUnit cu;
         try {
@@ -45,40 +39,34 @@ public class badSmells {
 
             // Long Method (Easy: counting all lines of code - only including lines from the method body)
             if ((body.getEnd().get().line) - (body.getBegin().get().line) - 1 > 20) {
-                System.out.println("Warning: method " + md.getName() + " contains too many lines of code!");
+                System.out.println("(Easy) Warning: method " + md.getName() + " contains too many lines of code!");
             }
 
-            /*// Long Method (Medium: counting statements - only including lines from the method body)
-            if(body.getStatements().size() > 20) {
-                System.out.println("Warning: method " + md.getName() + " contains too many statements!");
-            }*/
-
-            //System.out.println(body.getStatements() + " <- statements");
-            //System.out.println(body.getStatements().size())
-            int statementCounter = 0;
-            for (Statement s : body.getStatements()) {
-                statementCounter++;
-                if((s.isIfStmt() || s.isWhileStmt()) && s.getChildNodes().size() >= 1){
-                    searchStatements(s, statementCounter);
-                }
+            // Long Method (Medium: counting statements - only including lines from the method body)
+            if(md.findAll(Statement.class).size() - 1 > 20) {
+                System.out.println("(Medium) Warning: method " + md.getName() + " contains too many lines of code!");
             }
-            System.out.println("Final statement counter = " + statementCounter + " for method " + md.getName() + "\n");
+                System.out.println("Method " + md.getName() + " contains " + (md.findAll(Statement.class).size() - 1) + " statements within it. \n");
             super.visit(md, arg);
-        }
 
-        public void searchStatements(Node statementContents, int statementCounter) {
-//            if(statementContents.getChildNodes().get(1) != null) {
-                Node statement = statementContents.getChildNodes().get(1);
-                for (Node statementLine : statement.getChildNodes()) {
-                    System.out.println(statementLine + " statement line");
-                    statementCounter++;
-                    if ((statementLine.findAncestor(IfStmt.class).isPresent() || statementLine.findAncestor(WhileStmt.class).isPresent())
-                            && statementLine.getChildNodes().size() >= 1) {
-                        searchStatements(statement, statementCounter);
-                    }
-                }
-//            }
         }
+//                           _____________________________________________________________________
+//                           | KEEP THE BELOW METHOD, JUST IN CASE (Works the same as md.findAll)|
+//                           ---------------------------------------------------------------------
+//        public int searchStatements(Node statementContents, int statementCounter) {
+//            if(statementContents.getChildNodes().size() > 1) {
+//                Node statement = statementContents.getChildNodes().get(1);
+//                for (Node statementLine : statement.getChildNodes()) {
+//                    System.out.println(statementLine + " statement line");
+//                    statementCounter++;
+//                    if ((statementLine.findAncestor(IfStmt.class).isPresent() || statementLine.findAncestor(WhileStmt.class).isPresent())
+//                            && statementLine.getChildNodes().size() > 1) {
+//                        searchStatements(statement, statementCounter);
+//                    }
+//                }
+//            }
+//            return statementCounter;
+//        }
 
 
         public void visit(ClassOrInterfaceDeclaration cd, Object arg) {
