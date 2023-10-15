@@ -11,7 +11,7 @@ public class AoT {
         if("test" == "test"){
             System.out.println("nfnds");
 
-            if("jobby" == "hands") {
+            if("hands" == "hands") {
                 System.out.println("awdfighawyuief");
             }
         }

@@ -48,38 +48,14 @@ public class badSmells {
                 System.out.println("Warning: method " + md.getName() + " contains too many lines of code!");
             }
 
-            /*// Long Method (Medium: counting statements - only including lines from the method body)
-            if(body.getStatements().size() > 20) {
-                System.out.println("Warning: method " + md.getName() + " contains too many statements!");
-            }*/
+            int statementCounter = md.findAll(Statement.class).size();
+//            for(Statement s : md.findAll(Statement.class)){
+//                System.out.println("Statement for method " + md.getNameAsString() + " - " + s);
+//            }
 
-            //System.out.println(body.getStatements() + " <- statements");
-            //System.out.println(body.getStatements().size())
-            int statementCounter = 0;
-            for (Statement s : body.getStatements()) {
-                statementCounter++;
-                if((s.isIfStmt() || s.isWhileStmt()) && s.getChildNodes().size() >= 1){
-                    searchStatements(s, statementCounter);
-                }
-            }
-            System.out.println("Final statement counter = " + statementCounter + " for method " + md.getName() + "\n");
+            System.out.println("Final statement counter = " + statementCounter + " for method " + md.getName());
             super.visit(md, arg);
         }
-
-        public void searchStatements(Node statementContents, int statementCounter) {
-//            if(statementContents.getChildNodes().get(1) != null) {
-                Node statement = statementContents.getChildNodes().get(1);
-                for (Node statementLine : statement.getChildNodes()) {
-                    System.out.println(statementLine + " statement line");
-                    statementCounter++;
-                    if ((statementLine.findAncestor(IfStmt.class).isPresent() || statementLine.findAncestor(WhileStmt.class).isPresent())
-                            && statementLine.getChildNodes().size() >= 1) {
-                        searchStatements(statement, statementCounter);
-                    }
-                }
-//            }
-        }
-
 
         public void visit(ClassOrInterfaceDeclaration cd, Object arg) {
 
@@ -88,65 +64,13 @@ public class badSmells {
                 System.out.println("Warning: class " + cd.getNameAsString() + " contains too many lines");
             }
 
-            int statementCounter = 0;
-            NodeList<BodyDeclaration<?>> members = cd.getMembers();
-
-            for(BodyDeclaration member : members){
-               //statementCounter += totalClassSize(member, statementCounter);
-                if(member.isFieldDeclaration()) {
-                    statementCounter++;
-                }
-                if(member.isMethodDeclaration()){
-                    MethodDeclaration method = (MethodDeclaration) member;
-                    statementCounter += method.getBody().get().getStatements().size() + 2;
-                }
-                if(member.isClassOrInterfaceDeclaration()) {
-                    statementCounter +=2;
-                    //member.accept(this,null);
-                }
-            }
-
-            //System.out.println("statement counter = " + statementCounter + " - in class " + cd.getNameAsString());
+            int statementCounter = cd.findAll(Statement.class).size();
+//            for(Statement s : cd.findAll(Statement.class)){
+//                System.out.println("Statement for class " + cd.getNameAsString() + " - " + s);
+//            }
+            System.out.println("statement counter = " + statementCounter + " - in class " + cd.getNameAsString());
 
             super.visit(cd, arg);
         }
-
-        public int totalClassSize(BodyDeclaration bd, int statementCounter) {
-            int counter = statementCounter;
-
-            if(bd.isFieldDeclaration()) {
-                counter++;
-            }
-            if(bd.isMethodDeclaration()){
-                MethodDeclaration method = (MethodDeclaration) bd;
-                counter += method.getBody().get().getStatements().size() + 2;
-            }
-            if(bd.isClassOrInterfaceDeclaration()) {
-                bd.accept(this,null);
-                //bd.remove(); // NEED TO REMOVE THE CLASS HEADER AND CLOSING CURLY BRACKET HERE BEFORE PASSING CLASS BACK IN TO PREVENT INFINTE LOOP!!!!!!!
-                //counter += totalClassSize(bd, counter);
-            }
-
-            return counter;
-        }
-
-
-
-        /* public static int countLinesOfCode(ClassOrInterfaceDeclaration cd) {
-            int validLineCount = 0;
-
-            int startLine = cd.getBegin().get().line;
-            int endLine = cd.getEnd().get().line;
-
-            String[] lines = cd.getTokenRange().get().toString().split("\n");
-            for(String line : lines){
-                if(line.trim().length() > 0){
-                    validLineCount++;
-                }
-            }
-
-            System.out.println("Valid line count: " + validLineCount);
-            return 0;
-        } */
     }
 }
