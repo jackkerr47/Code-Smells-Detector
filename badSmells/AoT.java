@@ -24,38 +24,6 @@ public class AoT {
             if(i == 1){
                 System.out.println(i + "if 1");
             }
-//            if(i == 2){
-//                System.out.println(i + "if 2");
-//            }
-//            if(i == 3){
-//                System.out.println(i + "if 3");
-//            }
-//            if(i == 4){
-//                System.out.println(i + "if 4");
-//            }
-//            if(i == 5){
-//                System.out.println(i + "if 5");
-//            }
-//            if(i == 5){
-//                System.out.println(i + "if 5");
-//            } if(i == 5){
-//                System.out.println(i + "if 5");
-//            }
-//            if(i == 5){
-//                System.out.println(i + "if 5");
-//            }
-//            if(i == 5){
-//                System.out.println(i + "if 5");
-//            } if(i == 5){
-//                System.out.println(i + "if 5");
-//            } if(i == 5){
-//                System.out.println(i + "if 5");
-//            } if(i == 5){
-//                System.out.println(i + "if 5");
-//            }
-//            if(i == 5){
-//                System.out.println(i + "if 5");
-//            }
         }
         return i;
     }

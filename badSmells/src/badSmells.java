@@ -9,9 +9,11 @@ import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.stmt.WhileStmt;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
+import javax.sound.sampled.Line;
 import javax.swing.plaf.nimbus.State;
 import java.io.FileInputStream;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -56,13 +58,28 @@ public class badSmells {
             int statementCounter = 0;
             for (Statement s : body.getStatements()) {
                 statementCounter++;
-                if((s.isIfStmt() && s.isWhileStmt()) && s.getChildNodes().size() >= 1){
-                    
+                if((s.isIfStmt() || s.isWhileStmt()) && s.getChildNodes().size() >= 1){
+                    searchStatements(s, statementCounter);
                 }
             }
             System.out.println("Final statement counter = " + statementCounter + " for method " + md.getName() + "\n");
             super.visit(md, arg);
         }
+
+        public void searchStatements(Node statementContents, int statementCounter) {
+//            if(statementContents.getChildNodes().get(1) != null) {
+                Node statement = statementContents.getChildNodes().get(1);
+                for (Node statementLine : statement.getChildNodes()) {
+                    System.out.println(statementLine + " statement line");
+                    statementCounter++;
+                    if ((statementLine.findAncestor(IfStmt.class).isPresent() || statementLine.findAncestor(WhileStmt.class).isPresent())
+                            && statementLine.getChildNodes().size() >= 1) {
+                        searchStatements(statement, statementCounter);
+                    }
+                }
+//            }
+        }
+
 
         public void visit(ClassOrInterfaceDeclaration cd, Object arg) {
 

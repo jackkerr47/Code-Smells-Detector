@@ -9,18 +9,20 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module-library">
       <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/../../../Files/javaparser-core-3.25.5.jar!/" />
-        </CLASSES>
-        <JAVADOC />
+        <CLASSES />
+        <JAVADOC>
+          <root url="jar://$USER_HOME$/Files/javaparser-core-3.25.5-javadoc.jar!/" />
+        </JAVADOC>
         <SOURCES />
       </library>
     </orderEntry>
     <orderEntry type="module-library">
       <library>
-        <CLASSES />
+        <CLASSES>
+          <root url="jar://$USER_HOME$/Downloads/javaparser-core-3.25.5.jar!/" />
+        </CLASSES>
         <JAVADOC>
-          <root url="jar://$MODULE_DIR$/../../../Files/javaparser-core-3.25.5-javadoc.jar!/" />
+          <root url="jar://$USER_HOME$/Downloads/javaparser-core-3.25.5-javadoc.jar!/" />
         </JAVADOC>
         <SOURCES />
       </library>
