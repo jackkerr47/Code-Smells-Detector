@@ -25,7 +25,23 @@ public class badSmells {
         }
 
         MethodDeclarationVisitor md = new MethodDeclarationVisitor();
+        ClassOrInterfaceDeclarationVisitor cd = new ClassOrInterfaceDeclarationVisitor();
+        MessageChainVisitor mc = new MessageChainVisitor();
+
+
         cu.accept(md, null);
+        cu.accept(cd, null);
+        cu.accept(mc, null);
+    }
+
+    private static class MessageChainVisitor extends VoidVisitorAdapter {
+
+        public void visit(MethodCallExpr call, Object arg) {
+            if (call.getScope().isPresent() && call.getScope().get() instanceof MethodCallExpr) {
+                System.out.println("Warning! Message Chain Detected: " + call.getScope().get() + " -> " + call.getName());
+            }
+            super.visit(call, arg);
+        }
     }
 
     private static class ClassOrInterfaceDeclarationVisitor extends VoidVisitorAdapter {
@@ -81,13 +97,6 @@ public class badSmells {
             }
                 System.out.println("Method " + md.getName() + " contains " + (md.findAll(Statement.class).size() - 1) + " statements within it. \n");
 
-            // Message chains
-            md.findAll(MethodCallExpr.class).forEach(call -> {
-                if(isMessageChain(call)) {
-                    System.out.println("Message chain found in: " + call.toString());
-                }
-            });
-
             super.visit(md, arg);
         }
 //                           _____________________________________________________________________
@@ -128,11 +137,6 @@ public class badSmells {
             }
 
             return counter;
-        }
-
-        public static boolean isMessageChain(MethodCallExpr call) {
-            int maxNumberOfChildCalls = 1;
-            return call.getChildNodes().size() > maxNumberOfChildCalls;
         }
 
         /* public static int countLinesOfCode(ClassOrInterfaceDeclaration cd) {
