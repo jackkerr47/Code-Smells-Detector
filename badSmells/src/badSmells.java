@@ -1,14 +1,16 @@
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.body.BodyDeclaration;
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.stmt.BlockStmt;
+import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
+import javax.swing.plaf.nimbus.State;
 import java.io.FileInputStream;
+import java.lang.reflect.Field;
 
 
 public class badSmells {
@@ -34,21 +36,20 @@ public class badSmells {
 
             // Long Parameter List
             if (md.getParameters().size() > 5) {
-                System.out.println("Warning: long parameter list in method " + md.getName() + "!");
+                System.out.println("Warning: long parameter list in method " + md.getName() + "!\n");
             }
 
             // Long Method (Easy: counting all lines of code - only including lines from the method body)
             if ((body.getEnd().get().line) - (body.getBegin().get().line) - 1 > 20) {
-                System.out.println("(Easy) Warning: method " + md.getName() + " contains too many lines of code!");
+                System.out.println("Warning: method " + md.getName() + " contains too many lines of code!\n");
             }
 
-            // Long Method (Medium: counting statements - only including lines from the method body)
+            // Long Method (Medium: counting statements - only including lines within the method declaration's curly braces)
+            // All curly brace sets are counted as statements except the set belonging to the method declaration
             if(md.findAll(Statement.class).size() - 1 > 20) {
-                System.out.println("(Medium) Warning: method " + md.getName() + " contains too many lines of code!");
+                System.out.println("Warning: method " + md.getName() + " contains too many statements!\n");
             }
-                System.out.println("Method " + md.getName() + " contains " + (md.findAll(Statement.class).size() - 1) + " statements within it. \n");
             super.visit(md, arg);
-
         }
 //                           _____________________________________________________________________
 //                           | KEEP THE BELOW METHOD, JUST IN CASE (Works the same as md.findAll)|
@@ -73,68 +74,23 @@ public class badSmells {
 
             // Large Class (Easy: counting all lines of code - only including lines from the method body)
             if((cd.getEnd().get().line) - (cd.getBegin().get().line) - 1 > 100){
-                System.out.println("Warning: class " + cd.getNameAsString() + " contains too many lines");
+                System.out.println("Warning: class " + cd.getNameAsString() + " contains too many lines\n");
             }
 
-            int statementCounter = 0;
-            NodeList<BodyDeclaration<?>> members = cd.getMembers();
+            // Large Class (Medium: Counting all statements - only inside the class body (not including the set of curly braces belonging to the class declaration))
+            int statementCounter = cd.findAll(Statement.class).size();
+            statementCounter += ((cd.findAll(ClassOrInterfaceDeclaration.class).size() - 1) * 2); // Finds all nested class declarations and doubles the number to count the curly braces belonging to it (which are missed by finding statements)
+            statementCounter += cd.findAll(FieldDeclaration.class).size(); // Finds all field declarations outside of methods within the class 'cd' and all nested classes
+            statementCounter += cd.findAll(MethodDeclaration.class).size(); // Finds all method declarations within the class 'cd' and all nested classes
+            statementCounter += cd.findAll(ConstructorDeclaration.class).size(); // Finds all constructor declarations
+            statementCounter += cd.findAll(EnumDeclaration.class).size(); // Finds all Enum declarations
 
-            for(BodyDeclaration member : members){
-               //statementCounter += totalClassSize(member, statementCounter);
-                if(member.isFieldDeclaration()) {
-                    statementCounter++;
-                }
-                if(member.isMethodDeclaration()){
-                    MethodDeclaration method = (MethodDeclaration) member;
-                    statementCounter += method.getBody().get().getStatements().size() + 2;
-                }
-                if(member.isClassOrInterfaceDeclaration()) {
-                    statementCounter +=2;
-                    //member.accept(this,null);
-                }
+            if(statementCounter > 100){
+                System.out.println("Warning: class " + cd.getNameAsString() + " contains too many statements!\n");
             }
-
-            //System.out.println("statement counter = " + statementCounter + " - in class " + cd.getNameAsString());
 
             super.visit(cd, arg);
         }
 
-        public int totalClassSize(BodyDeclaration bd, int statementCounter) {
-            int counter = statementCounter;
-
-            if(bd.isFieldDeclaration()) {
-                counter++;
-            }
-            if(bd.isMethodDeclaration()){
-                MethodDeclaration method = (MethodDeclaration) bd;
-                counter += method.getBody().get().getStatements().size() + 2;
-            }
-            if(bd.isClassOrInterfaceDeclaration()) {
-                bd.accept(this,null);
-                //bd.remove(); // NEED TO REMOVE THE CLASS HEADER AND CLOSING CURLY BRACKET HERE BEFORE PASSING CLASS BACK IN TO PREVENT INFINTE LOOP!!!!!!!
-                //counter += totalClassSize(bd, counter);
-            }
-
-            return counter;
-        }
-
-
-
-        /* public static int countLinesOfCode(ClassOrInterfaceDeclaration cd) {
-            int validLineCount = 0;
-
-            int startLine = cd.getBegin().get().line;
-            int endLine = cd.getEnd().get().line;
-
-            String[] lines = cd.getTokenRange().get().toString().split("\n");
-            for(String line : lines){
-                if(line.trim().length() > 0){
-                    validLineCount++;
-                }
-            }
-
-            System.out.println("Valid line count: " + validLineCount);
-            return 0;
-        } */
     }
 }

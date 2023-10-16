@@ -11,15 +11,11 @@ public class AoT {
         if("test" == "test"){
             System.out.println("nfnds");
 
-            if("jobby" == "hands") {
+            if("hands" == "hands") {
                 System.out.println("awdfighawyuief");
             }
-
-            if("ass" == "tiddies") {
-
-            }
         }
-        while (i < 5) {
+        /*while (i < 5) {
             System.out.println(i);
             i++;
             if(i == 0){
@@ -28,14 +24,20 @@ public class AoT {
             if(i == 1){
                 System.out.println(i + "if 1");
             }
-        }
+        }*/
         return i;
     }
 
     public static class TestClass {
         int a;
         public void test(int a, int b, int c, int d, int e, int f){
+            int h = 0;
+        }
 
+       public static class test2{
+            public void test2(){
+                System.out.println("test");
+            }
        }
     }
 }
