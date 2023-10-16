@@ -24,9 +24,41 @@ public class badSmells {
             in.close();
         }
 
-        new MethodDeclarationVisitor().visit(cu, null);
+        MethodDeclarationVisitor md = new MethodDeclarationVisitor();
+        cu.accept(md, null);
     }
 
+    private static class ClassOrInterfaceDeclarationVisitor extends VoidVisitorAdapter {
+        public void visit(ClassOrInterfaceDeclaration cd, Object arg) {
+
+            // Large Class (Easy: counting all lines of code - only including lines from the method body)
+            if((cd.getEnd().get().line) - (cd.getBegin().get().line) - 1 > 100){
+                System.out.println("Warning: class " + cd.getNameAsString() + " contains too many lines");
+            }
+
+            int statementCounter = 0;
+            NodeList<BodyDeclaration<?>> members = cd.getMembers();
+
+            for(BodyDeclaration member : members){
+                //statementCounter += totalClassSize(member, statementCounter);
+                if(member.isFieldDeclaration()) {
+                    statementCounter++;
+                }
+                if(member.isMethodDeclaration()){
+                    MethodDeclaration method = (MethodDeclaration) member;
+                    statementCounter += method.getBody().get().getStatements().size() + 2;
+                }
+                if(member.isClassOrInterfaceDeclaration()) {
+                    statementCounter +=2;
+                    //member.accept(this,null);
+                }
+            }
+
+            //System.out.println("statement counter = " + statementCounter + " - in class " + cd.getNameAsString());
+
+            super.visit(cd, arg);
+        }
+    }
 
     private static class MethodDeclarationVisitor extends VoidVisitorAdapter {
 
@@ -48,8 +80,6 @@ public class badSmells {
                 System.out.println("(Medium) Warning: method " + md.getName() + " contains too many lines of code!");
             }
                 System.out.println("Method " + md.getName() + " contains " + (md.findAll(Statement.class).size() - 1) + " statements within it. \n");
-            super.visit(md, arg);
-
 
             // Message chains
             md.findAll(MethodCallExpr.class).forEach(call -> {
@@ -57,6 +87,8 @@ public class badSmells {
                     System.out.println("Message chain found in: " + call.toString());
                 }
             });
+
+            super.visit(md, arg);
         }
 //                           _____________________________________________________________________
 //                           | KEEP THE BELOW METHOD, JUST IN CASE (Works the same as md.findAll)|
@@ -77,35 +109,7 @@ public class badSmells {
 //        }
 
 
-        public void visit(ClassOrInterfaceDeclaration cd, Object arg) {
 
-            // Large Class (Easy: counting all lines of code - only including lines from the method body)
-            if((cd.getEnd().get().line) - (cd.getBegin().get().line) - 1 > 100){
-                System.out.println("Warning: class " + cd.getNameAsString() + " contains too many lines");
-            }
-
-            int statementCounter = 0;
-            NodeList<BodyDeclaration<?>> members = cd.getMembers();
-
-            for(BodyDeclaration member : members){
-               //statementCounter += totalClassSize(member, statementCounter);
-                if(member.isFieldDeclaration()) {
-                    statementCounter++;
-                }
-                if(member.isMethodDeclaration()){
-                    MethodDeclaration method = (MethodDeclaration) member;
-                    statementCounter += method.getBody().get().getStatements().size() + 2;
-                }
-                if(member.isClassOrInterfaceDeclaration()) {
-                    statementCounter +=2;
-                    //member.accept(this,null);
-                }
-            }
-
-            //System.out.println("statement counter = " + statementCounter + " - in class " + cd.getNameAsString());
-
-            super.visit(cd, arg);
-        }
 
         public int totalClassSize(BodyDeclaration bd, int statementCounter) {
             int counter = statementCounter;
@@ -130,8 +134,6 @@ public class badSmells {
             int maxNumberOfChildCalls = 1;
             return call.getChildNodes().size() > maxNumberOfChildCalls;
         }
-
-
 
         /* public static int countLinesOfCode(ClassOrInterfaceDeclaration cd) {
             int validLineCount = 0;
