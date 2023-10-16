@@ -4,6 +4,7 @@ import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
@@ -49,6 +50,13 @@ public class badSmells {
                 System.out.println("Method " + md.getName() + " contains " + (md.findAll(Statement.class).size() - 1) + " statements within it. \n");
             super.visit(md, arg);
 
+
+            // Message chains
+            md.findAll(MethodCallExpr.class).forEach(call -> {
+                if(isMessageChain(call)) {
+                    System.out.println("Message chain found in: " + call.toString());
+                }
+            });
         }
 //                           _____________________________________________________________________
 //                           | KEEP THE BELOW METHOD, JUST IN CASE (Works the same as md.findAll)|
@@ -116,6 +124,11 @@ public class badSmells {
             }
 
             return counter;
+        }
+
+        public static boolean isMessageChain(MethodCallExpr call) {
+            int maxNumberOfChildCalls = 1;
+            return call.getChildNodes().size() > maxNumberOfChildCalls;
         }
 
 
