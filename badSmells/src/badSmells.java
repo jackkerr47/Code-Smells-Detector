@@ -3,6 +3,10 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.*;
+import com.github.javaparser.ast.body.BodyDeclaration;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.Statement;
@@ -25,11 +29,25 @@ public class badSmells {
             in.close();
         }
 
-        new MethodDeclarationVisitor().visit(cu, null);
+        MethodAndClassDeclarationVisitor md = new MethodAndClassDeclarationVisitor();
+        MessageChainVisitor mc = new MessageChainVisitor();
+
+
+        cu.accept(md, null);
+        cu.accept(mc, null);
     }
 
+    private static class MessageChainVisitor extends VoidVisitorAdapter {
 
-    private static class MethodDeclarationVisitor extends VoidVisitorAdapter {
+        public void visit(MethodCallExpr call, Object arg) {
+            if (call.getScope().isPresent() && call.getScope().get() instanceof MethodCallExpr) {
+                System.out.println("Warning! Message Chain Detected: " + call.getScope().get() + " -> " + call.getName());
+            }
+            super.visit(call, arg);
+        }
+    }
+
+    private static class MethodAndClassDeclarationVisitor extends VoidVisitorAdapter {
 
         public void visit(MethodDeclaration md, Object arg) {
             BlockStmt body = md.getBody().get();
@@ -49,6 +67,7 @@ public class badSmells {
             if(md.findAll(Statement.class).size() - 1 > 20) {
                 System.out.println("Warning: method " + md.getName() + " contains too many statements!\n");
             }
+
             super.visit(md, arg);
         }
 //                           _____________________________________________________________________
@@ -68,7 +87,6 @@ public class badSmells {
 //            }
 //            return statementCounter;
 //        }
-
 
         public void visit(ClassOrInterfaceDeclaration cd, Object arg) {
 
