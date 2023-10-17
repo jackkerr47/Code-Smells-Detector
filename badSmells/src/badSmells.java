@@ -23,7 +23,7 @@ import java.lang.reflect.Field;
 public class badSmells {
 
     public static void main(String[] args) throws Exception {
-        FileInputStream in = new FileInputStream("Grid.java");
+        FileInputStream in = new FileInputStream("AccountManager.java");
 
         CompilationUnit cu;
         try {
@@ -205,6 +205,14 @@ public class badSmells {
 
             if(statementCounter > 100){
                 System.out.println("Warning: class " + cd.getNameAsString() + " contains too many statements!\n");
+            }
+
+            // Middle Man
+            boolean middleMan = false;
+            for(MethodDeclaration md : cd.findAll(MethodDeclaration.class)){
+                for(Statement s : md.getBody().get().getStatements()){
+                    if(s.)
+                }
             }
 
             super.visit(cd, arg);
