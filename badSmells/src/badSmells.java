@@ -1,16 +1,22 @@
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.*;
-import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.body.BodyDeclaration;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
+import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
+import javax.swing.plaf.nimbus.State;
 import java.io.FileInputStream;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.lang.reflect.Field;
 
 
 public class badSmells {
@@ -25,8 +31,7 @@ public class badSmells {
             in.close();
         }
 
-        MethodDeclarationVisitor md = new MethodDeclarationVisitor();
-        ClassOrInterfaceDeclarationVisitor cd = new ClassOrInterfaceDeclarationVisitor();
+        MethodAndClassDeclarationVisitor md = new MethodAndClassDeclarationVisitor();
         MessageChainVisitor mc = new MessageChainVisitor();
         TemporaryFieldVisitor fv = new TemporaryFieldVisitor();
 
@@ -149,19 +154,19 @@ public class badSmells {
 
             // Long Parameter List
             if (md.getParameters().size() > 5) {
-                System.out.println("Warning: long parameter list in method " + md.getName() + "!");
+                System.out.println("Warning: long parameter list in method " + md.getName() + "!\n");
             }
 
             // Long Method (Easy: counting all lines of code - only including lines from the method body)
             if ((body.getEnd().get().line) - (body.getBegin().get().line) - 1 > 20) {
-                System.out.println("(Easy) Warning: method " + md.getName() + " contains too many lines of code!");
+                System.out.println("Warning: method " + md.getName() + " contains too many lines of code!\n");
             }
 
-            // Long Method (Medium: counting statements - only including lines from the method body)
+            // Long Method (Medium: counting statements - only including lines within the method declaration's curly braces)
+            // All curly brace sets are counted as statements except the set belonging to the method declaration
             if(md.findAll(Statement.class).size() - 1 > 20) {
-                System.out.println("(Medium) Warning: method " + md.getName() + " contains too many lines of code!");
+                System.out.println("Warning: method " + md.getName() + " contains too many statements!\n");
             }
-                System.out.println("Method " + md.getName() + " contains " + (md.findAll(Statement.class).size() - 1) + " statements within it. \n");
 
             super.visit(md, arg);
         }
@@ -183,43 +188,27 @@ public class badSmells {
 //            return statementCounter;
 //        }
 
+        public void visit(ClassOrInterfaceDeclaration cd, Object arg) {
 
-
-
-        public int totalClassSize(BodyDeclaration bd, int statementCounter) {
-            int counter = statementCounter;
-
-            if(bd.isFieldDeclaration()) {
-                counter++;
-            }
-            if(bd.isMethodDeclaration()){
-                MethodDeclaration method = (MethodDeclaration) bd;
-                counter += method.getBody().get().getStatements().size() + 2;
-            }
-            if(bd.isClassOrInterfaceDeclaration()) {
-                bd.accept(this,null);
-                //bd.remove(); // NEED TO REMOVE THE CLASS HEADER AND CLOSING CURLY BRACKET HERE BEFORE PASSING CLASS BACK IN TO PREVENT INFINTE LOOP!!!!!!!
-                //counter += totalClassSize(bd, counter);
+            // Large Class (Easy: counting all lines of code - only including lines from the method body)
+            if((cd.getEnd().get().line) - (cd.getBegin().get().line) - 1 > 100){
+                System.out.println("Warning: class " + cd.getNameAsString() + " contains too many lines\n");
             }
 
-            return counter;
+            // Large Class (Medium: Counting all statements - only inside the class body (not including the set of curly braces belonging to the class declaration))
+            int statementCounter = cd.findAll(Statement.class).size();
+            statementCounter += ((cd.findAll(ClassOrInterfaceDeclaration.class).size() - 1) * 2); // Finds all nested class declarations and doubles the number to count the curly braces belonging to it (which are missed by finding statements)
+            statementCounter += cd.findAll(FieldDeclaration.class).size(); // Finds all field declarations outside of methods within the class 'cd' and all nested classes
+            statementCounter += cd.findAll(MethodDeclaration.class).size(); // Finds all method declarations within the class 'cd' and all nested classes
+            statementCounter += cd.findAll(ConstructorDeclaration.class).size(); // Finds all constructor declarations
+            statementCounter += cd.findAll(EnumDeclaration.class).size(); // Finds all Enum declarations
+
+            if(statementCounter > 100){
+                System.out.println("Warning: class " + cd.getNameAsString() + " contains too many statements!\n");
+            }
+
+            super.visit(cd, arg);
         }
 
-        /* public static int countLinesOfCode(ClassOrInterfaceDeclaration cd) {
-            int validLineCount = 0;
-
-            int startLine = cd.getBegin().get().line;
-            int endLine = cd.getEnd().get().line;
-
-            String[] lines = cd.getTokenRange().get().toString().split("\n");
-            for(String line : lines){
-                if(line.trim().length() > 0){
-                    validLineCount++;
-                }
-            }
-
-            System.out.println("Valid line count: " + validLineCount);
-            return 0;
-        } */
     }
 }
