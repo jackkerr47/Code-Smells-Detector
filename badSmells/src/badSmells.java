@@ -6,6 +6,7 @@ import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
@@ -36,7 +37,6 @@ public class badSmells {
         TemporaryFieldVisitor fv = new TemporaryFieldVisitor();
 
         md.visit(cu, null);
-        cd.visit(cu, null);
         mc.visit(cu, null);
         fv.visit(cu, null);
     }
@@ -146,7 +146,7 @@ public class badSmells {
         }
     }
 
-    private static class MethodDeclarationVisitor extends VoidVisitorAdapter {
+    private static class MethodAndClassDeclarationVisitor extends VoidVisitorAdapter {
 
         @Override
         public void visit(MethodDeclaration md, Object arg) {
