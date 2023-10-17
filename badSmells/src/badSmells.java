@@ -1,15 +1,16 @@
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.body.BodyDeclaration;
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.*;
+import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
 import java.io.FileInputStream;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class badSmells {
@@ -27,15 +28,78 @@ public class badSmells {
         MethodDeclarationVisitor md = new MethodDeclarationVisitor();
         ClassOrInterfaceDeclarationVisitor cd = new ClassOrInterfaceDeclarationVisitor();
         MessageChainVisitor mc = new MessageChainVisitor();
+        TemporaryFieldVisitor fv = new TemporaryFieldVisitor();
 
+        md.visit(cu, null);
+        cd.visit(cu, null);
+        mc.visit(cu, null);
+        fv.visit(cu, null);
+    }
 
-        cu.accept(md, null);
-        cu.accept(cd, null);
-        cu.accept(mc, null);
+    public static class TemporaryFieldVisitor extends VoidVisitorAdapter {
+
+        @Override
+        public void visit(FieldDeclaration fd, Object arg) {
+
+            List<String> fieldNamesList = fd.getVariables().stream()
+                    .map(var -> var.getName().asString())
+                    .collect(Collectors.toCollection(ArrayList::new));
+
+            for(String fieldName : fieldNamesList) {
+                if (!isFieldUsedWithinMethods(fd, fieldName)) {
+                    System.out.println("Temporary Field Detected: " + fieldName);
+                }
+            }
+            super.visit(fd, arg);
+        }
+
+        private boolean isFieldUsedWithinMethods(FieldDeclaration fd, String fieldName) {
+
+            //need to get cu as the methods in the whole AST will be out of scope here
+            Optional<CompilationUnit> cu = fd.findCompilationUnit();
+            List<MethodDeclaration> methodDeclarations = new ArrayList<>();
+
+            if (cu.isPresent()) {
+                methodDeclarations = cu.get().findAll(MethodDeclaration.class);
+            } else {
+                System.out.println("CompilationUnit not found.");
+            }
+
+            for (MethodDeclaration md : methodDeclarations) {
+                List<MethodCallExpr> methodCallExpressions = new ArrayList<>();
+                md.accept(new MethodCallVisitor(methodCallExpressions), null);
+
+                for (MethodCallExpr methodCallExpr : methodCallExpressions) {
+                    NodeList<Expression> arguments = methodCallExpr.getArguments();
+                    for (Expression expression : arguments) {
+                        if (expression.isNameExpr() && expression.asNameExpr().getName().asString().equals(fieldName)) {
+                            return true; // Field is used within a method call argument
+                        }
+                    }
+                }
+            }
+            return false; // Field is not used within method call arguments
+
+        }
+
+        private static class MethodCallVisitor extends VoidVisitorAdapter<Void> {
+            private final List<MethodCallExpr> methodCallExpressions;
+
+            public MethodCallVisitor(List<MethodCallExpr> methodCallExpressions) {
+                this.methodCallExpressions = methodCallExpressions;
+            }
+
+            @Override
+            public void visit(MethodCallExpr n, Void arg) {
+                super.visit(n, arg);
+                methodCallExpressions.add(n);
+            }
+        }
     }
 
     private static class MessageChainVisitor extends VoidVisitorAdapter {
 
+        @Override
         public void visit(MethodCallExpr call, Object arg) {
             if (call.getScope().isPresent() && call.getScope().get() instanceof MethodCallExpr) {
                 System.out.println("Warning! Message Chain Detected: " + call.getScope().get() + " -> " + call.getName());
@@ -45,6 +109,7 @@ public class badSmells {
     }
 
     private static class ClassOrInterfaceDeclarationVisitor extends VoidVisitorAdapter {
+        @Override
         public void visit(ClassOrInterfaceDeclaration cd, Object arg) {
 
             // Large Class (Easy: counting all lines of code - only including lines from the method body)
@@ -78,6 +143,7 @@ public class badSmells {
 
     private static class MethodDeclarationVisitor extends VoidVisitorAdapter {
 
+        @Override
         public void visit(MethodDeclaration md, Object arg) {
             BlockStmt body = md.getBody().get();
 
