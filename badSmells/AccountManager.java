@@ -9,7 +9,12 @@ public class AccountManager {
         DataProvider = dataProvider;
     }
 
+//    public Account returnAccount(){
+//        return DataProvider;
+//    }
+
     public Account GetAccount(int id){
         return DataProvider.GetAccount(id);
+//        return returnAccount();
     }
 }

@@ -1,6 +1,5 @@
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.body.BodyDeclaration;
@@ -8,16 +7,11 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.ast.stmt.BlockStmt;
-import com.github.javaparser.ast.stmt.ExpressionStmt;
-import com.github.javaparser.ast.stmt.Statement;
+import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
-
-import javax.swing.plaf.nimbus.State;
 import java.io.FileInputStream;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.lang.reflect.Field;
 
 
 public class badSmells {
@@ -208,14 +202,56 @@ public class badSmells {
             }
 
             // Middle Man
-            boolean middleMan = false;
+            boolean middleMan = true;
             for(MethodDeclaration md : cd.findAll(MethodDeclaration.class)){
-                for(Statement s : md.getBody().get().getStatements()){
-                    if(s.)
+                for(Statement s : md.getBody().get().findAll(Statement.class)){
+                    middleMan = middleManCheck(s,middleMan);
                 }
             }
+            if(cd.findAll(MethodDeclaration.class).size() == 0) {
+                for (ConstructorDeclaration c : cd.findAll(ConstructorDeclaration.class)) {
+                    for (Statement s : c.getBody().findAll(Statement.class))
+                        middleMan = middleManCheck(s, middleMan);
+                }
+            }
+            if(middleMan == true)
+                System.out.println("Warning: class " + cd.getNameAsString() + " is a middle man class!");
 
             super.visit(cd, arg);
+        }
+
+        public boolean middleManCheck(Statement s, boolean middleMan){
+            if(s instanceof ExpressionStmt){
+                if (s.asExpressionStmt().getExpression().isMethodCallExpr()) {
+                    MethodCallExpr mc = (MethodCallExpr) s.asExpressionStmt().getExpression();
+                    if (mc.getScope().isEmpty()) {
+                        middleMan = false; // If the method call does not use another class's method then the class 'cd' is not a middle man class
+                    }
+                    for(Expression e : mc.getArguments()){
+                        if(!e.isMethodCallExpr())
+                            middleMan = false;
+                        else{
+                            if(e.asMethodCallExpr().getScope().isEmpty())
+                                middleMan = false;
+                        }
+                    }
+                } else
+                    middleMan = false;
+            } else if(s instanceof LocalClassDeclarationStmt){
+                middleMan = false;
+            } else if(s instanceof ReturnStmt){
+                if (s.asReturnStmt().getExpression().isPresent()) {
+                    if(s.asReturnStmt().getExpression().get().isMethodCallExpr()) {
+                        MethodCallExpr mc = (MethodCallExpr) s.asReturnStmt().getExpression().get();
+                        if (mc.getScope().isEmpty()) {
+                            middleMan = false; // If the method call does not use another class's method then the class 'cd' is not a middle man class
+                        }
+                    } else if(s.asReturnStmt().getExpression().get().isNameExpr()){
+                        middleMan = false;
+                    }
+                }
+            }
+            return middleMan;
         }
 
     }
