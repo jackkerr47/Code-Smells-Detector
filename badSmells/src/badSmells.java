@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 public class badSmells {
 
     public static void main(String[] args) throws Exception {
-        FileInputStream in = new FileInputStream("AccountManager.java");
+        FileInputStream in = new FileInputStream("Grid.java");
 
         CompilationUnit cu;
         try {
