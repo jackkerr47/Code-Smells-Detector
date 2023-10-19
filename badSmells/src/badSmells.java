@@ -201,20 +201,21 @@ public class badSmells {
                 System.out.println("Warning: class " + cd.getNameAsString() + " contains too many statements!\n");
             }
 
-            // Middle Man
+            // Middle Man (middle man class is defined as one which the method calls used all belong to other classes and no functionality is provided)
             boolean middleMan = true;
-            for(MethodDeclaration md : cd.findAll(MethodDeclaration.class)){
-                for(Statement s : md.getBody().get().findAll(Statement.class)){
-                    middleMan = middleManCheck(s,middleMan);
-                }
-            }
             if(cd.findAll(MethodDeclaration.class).size() == 0) {
-                for (ConstructorDeclaration c : cd.findAll(ConstructorDeclaration.class)) {
+                for (ConstructorDeclaration c : cd.findAll(ConstructorDeclaration.class)) { // If the class creates an object with a constructor and has no methods then this is not a middle man class
                     for (Statement s : c.getBody().findAll(Statement.class))
                         middleMan = middleManCheck(s, middleMan);
                 }
+            } else {
+                for(MethodDeclaration md : cd.findAll(MethodDeclaration.class)){
+                    for(Statement s : md.getBody().get().findAll(Statement.class)){
+                        middleMan = middleManCheck(s, middleMan);
+                    }
+                }
             }
-            if(middleMan == true)
+            if(middleMan == true) // If middleMan is true then the class must be a middle man since there is not statement that adds functionality to the class
                 System.out.println("Warning: class " + cd.getNameAsString() + " is a middle man class!");
 
             super.visit(cd, arg);
@@ -229,25 +230,25 @@ public class badSmells {
                     }
                     for(Expression e : mc.getArguments()){
                         if(!e.isMethodCallExpr())
-                            middleMan = false;
+                            middleMan = false; // If the statement is not a method call then the class cannot be a middle man
                         else{
                             if(e.asMethodCallExpr().getScope().isEmpty())
-                                middleMan = false;
+                                middleMan = false; // If the method call does not use another class's method then the class 'cd' is not a middle man class
                         }
                     }
                 } else
-                    middleMan = false;
+                    middleMan = false; // If the statement is not a method call then the class cannot be a middle man
             } else if(s instanceof LocalClassDeclarationStmt){
-                middleMan = false;
+                middleMan = false; // If the class has a nested class then it is not a middle man
             } else if(s instanceof ReturnStmt){
                 if (s.asReturnStmt().getExpression().isPresent()) {
                     if(s.asReturnStmt().getExpression().get().isMethodCallExpr()) {
                         MethodCallExpr mc = (MethodCallExpr) s.asReturnStmt().getExpression().get();
                         if (mc.getScope().isEmpty()) {
-                            middleMan = false; // If the method call does not use another class's method then the class 'cd' is not a middle man class
+                            middleMan = false; // If the return statement does not use another class's method then the class 'cd' is not a middle man class
                         }
                     } else if(s.asReturnStmt().getExpression().get().isNameExpr()){
-                        middleMan = false;
+                        middleMan = false; // If it returns something other than a variable call then this is not a middle man class
                     }
                 }
             }
