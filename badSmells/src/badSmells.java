@@ -107,39 +107,6 @@ public class badSmells {
         }
     }
 
-    private static class ClassOrInterfaceDeclarationVisitor extends VoidVisitorAdapter {
-        @Override
-        public void visit(ClassOrInterfaceDeclaration cd, Object arg) {
-
-            // Large Class (Easy: counting all lines of code - only including lines from the method body)
-            if((cd.getEnd().get().line) - (cd.getBegin().get().line) - 1 > 100){
-                System.out.println("Warning: class " + cd.getNameAsString() + " contains too many lines");
-            }
-
-            int statementCounter = 0;
-            NodeList<BodyDeclaration<?>> members = cd.getMembers();
-
-            for(BodyDeclaration member : members){
-                //statementCounter += totalClassSize(member, statementCounter);
-                if(member.isFieldDeclaration()) {
-                    statementCounter++;
-                }
-                if(member.isMethodDeclaration()){
-                    MethodDeclaration method = (MethodDeclaration) member;
-                    statementCounter += method.getBody().get().getStatements().size() + 2;
-                }
-                if(member.isClassOrInterfaceDeclaration()) {
-                    statementCounter +=2;
-                    //member.accept(this,null);
-                }
-            }
-
-            //System.out.println("statement counter = " + statementCounter + " - in class " + cd.getNameAsString());
-
-            super.visit(cd, arg);
-        }
-    }
-
     private static class MethodAndClassDeclarationVisitor extends VoidVisitorAdapter {
 
         @Override
