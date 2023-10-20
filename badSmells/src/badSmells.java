@@ -7,9 +7,13 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
+
+import javax.swing.plaf.nimbus.State;
 import java.io.FileInputStream;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -168,6 +172,65 @@ public class badSmells {
                 System.out.println("Warning: class " + cd.getNameAsString() + " contains too many statements!\n");
             }
 
+
+            // Data Class (Medium)
+            // A data class is defined as a class which has variables local to the class, a constructor, getter methods or setter methods - anything else and it is NOT a data class.
+
+            // Below is an example of a getter method -
+
+//            int variable;
+//
+//            public void getVariable(){
+//                return variable; // returns a variable and does not modify it in any way
+//            }
+
+
+            // Below is an example of a setter method -
+
+//            int variable;
+//
+//            public void setVariable(int variable){
+//                this.variable = variable; // No modifications are allowed to the method parameter variable, 'this.' is optional if the method parameter and class variable do not have the same name
+//            }
+
+            Boolean isDataClass = true;
+            for(Statement s : cd.findAll(Statement.class)){
+                if(s instanceof ReturnStmt) {
+                    if(s.asReturnStmt().getExpression().get() instanceof NameExpr){
+                        // Do nothing as this is a valid return statement for a data class
+                    } else{
+                        isDataClass = false; // Cannot be data class as the return statement does not simply return a variable
+                    }
+                } else if (s instanceof BlockStmt) {
+                    // Do nothing as a block statement in this case only consists of curly braces
+                } else if(s instanceof ExpressionStmt){
+                    Expression expression = s.asExpressionStmt().getExpression();
+                    if(expression.isAssignExpr()
+                            && ((expression.asAssignExpr().getTarget().isFieldAccessExpr() && fieldsDeclared(cd, expression.asAssignExpr().getTarget().asFieldAccessExpr().getNameAsString() ) && expression.asAssignExpr().getTarget().asFieldAccessExpr().getScope().isThisExpr())
+                            || (expression.asAssignExpr().getTarget().isNameExpr() && fieldsDeclared(cd, expression.asAssignExpr().getTarget().asNameExpr().getNameAsString())))
+                            && expression.asAssignExpr().getValue().isNameExpr()
+                            && checkParameter(s)){
+                        // Do nothing as this Expression Statement belongs in a data class
+
+                        // In the following explanation of this if statement, it uses the above example setter method
+                        // The above if statement checks a statement belongs to a setter method by checking the expression 'this.variable = variable;' is an Assign Expression,
+                        // then checks the 'this.variable' is either a Field Access Expression or Name Expression (in this case it would just be 'variable') and checks the field 'variable' is a field declared in the class.
+                        // If the expression is a Field Access Expression then it also checks it contains 'this.'
+                        // It then checks the 'variable' on the right of the equals sign is a Name Expression (only a variable) and then checks it is a parameter of that method or constructor.
+
+                    } else {
+                        isDataClass = false; // If there is an Expression Statement that does not belong in a data class, then this class is not a data class
+                    }
+                } else {
+                    isDataClass = false; // If there is a statement that is neither a return statement, block statement (curly braces) or an expression statement then this is not a data class as a data class only includes getter and setter methods
+                }
+            }
+
+            if(isDataClass == true) {
+                System.out.println("Warning: Class " + cd.getNameAsString() + " is a Data Class!\n");
+            }
+
+
             // Middle Man (middle man class is defined as one which the method calls used all belong to other classes and no functionality is provided)
             boolean middleMan = true;
             if(cd.findAll(MethodDeclaration.class).size() == 0) {
@@ -183,9 +246,41 @@ public class badSmells {
                 }
             }
             if(middleMan == true) // If middleMan is true then the class must be a middle man since there is not statement that adds functionality to the class
-                System.out.println("Warning: class " + cd.getNameAsString() + " is a middle man class!");
+                System.out.println("Warning: class " + cd.getNameAsString() + " is a middle man class!\n");
 
             super.visit(cd, arg);
+        }
+
+        // Checks the string 'fieldName' is a field declared in the 'cd' class
+        public boolean fieldsDeclared(ClassOrInterfaceDeclaration cd, String fieldName){
+            for(FieldDeclaration fd : cd.findAll(FieldDeclaration.class)) {
+                for (VariableDeclarator v : fd.getVariables()){
+                    if (v.toString().equals(fieldName)) {
+                        return true; // If fieldName is a variable declared in the class (outside of methods) then 'cd' can be a data class
+                    }
+                }
+            }
+            return false; // If fieldName is not a variable declared in the class (outside of methods then 'cd' cannot be a data class
+        }
+
+        // Checks the Statement 's' is a parameter in either a constructor or a method
+        public boolean checkParameter(Statement s){
+            Expression expression = s.asExpressionStmt().getExpression();
+            String parameter = expression.asAssignExpr().getValue().asNameExpr().getNameAsString();
+            if(s.findAncestor(MethodDeclaration.class).isPresent()){
+                for(Parameter p : s.findAncestor(MethodDeclaration.class).get().getParameters()){
+                    if(p.getName().asString().equals(parameter)){
+                        return true; // If the parameters in the statement's method include the name expression from the statement then this can be a data class
+                    }
+                }
+            } else if(s.findAncestor(ConstructorDeclaration.class).isPresent()){
+                for(Parameter p : s.findAncestor(ConstructorDeclaration.class).get().getParameters()){
+                    if(p.getName().asString().equals(parameter)){
+                        return true; // If the parameters in the statement's constructor include the name expression from the statement then this can be a data class
+                    }
+                }
+            }
+            return false; // If the parameter is not in the statement's method or constructor then it cannot be a data class
         }
 
         public boolean middleManCheck(Statement s, boolean middleMan){
