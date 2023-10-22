@@ -15,5 +15,4 @@ public class Phone {
     public String getNumber() {
         return unformattedNumber.substring(6,10);
     }
-
 }

@@ -2,26 +2,59 @@ import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.*;
-import com.github.javaparser.ast.body.BodyDeclaration;
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
-
-import javax.swing.plaf.nimbus.State;
 import java.io.FileInputStream;
-import java.lang.reflect.Modifier;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 public class badSmells {
 
     public static void main(String[] args) throws Exception {
+        //Enter the file you wish to perform static analysis upon
         FileInputStream in = new FileInputStream("Grid.java");
+
+        //This returns the name of all java file names within the badSmells directory, to help detect feature envy within the above file
+        Path directoryPath = Path.of("C:\\Users\\Ander\\IdeaProjects\\Software-Architecture-Project\\badSmells"); // Replace with the actual directory path
+
+        ClassCollectorVisitor cc = new ClassCollectorVisitor();
+        MessageChainVisitor mc = new MessageChainVisitor();
+        TemporaryFieldVisitor fv = new TemporaryFieldVisitor();
+
+        List<String> classList = new ArrayList<>();
+
+        try {
+            Stream<Path> pathStream = Files.walk(directoryPath, Integer.MAX_VALUE);
+            Stream<Path> javaFiles = pathStream.filter(path -> path.toString().toLowerCase().endsWith(".java"));
+
+            // Process each file and directory in the stream
+            javaFiles.forEach(path -> {
+                CompilationUnit cuStream;
+
+                try {
+                    cuStream = StaticJavaParser.parse(path);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+
+                cc.visit(cuStream,null);
+
+                // You can perform actions on each path here
+            });
+
+            // Close the stream when you're done
+            pathStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         CompilationUnit cu;
         try {
@@ -30,15 +63,29 @@ public class badSmells {
             in.close();
         }
 
-        MethodAndClassDeclarationVisitor md = new MethodAndClassDeclarationVisitor();
-        MessageChainVisitor mc = new MessageChainVisitor();
-        TemporaryFieldVisitor fv = new TemporaryFieldVisitor();
-
+        classList = cc.getClassList(); // This is a list of classes defined within all the Java files inside the project folder specified in 'directoryPath' - it is used to check for feature envy
+        MethodAndClassDeclarationVisitor md = new MethodAndClassDeclarationVisitor(classList);
         md.visit(cu, null);
         mc.visit(cu, null);
         fv.visit(cu, null);
+
     }
 
+    public static class ClassCollectorVisitor extends VoidVisitorAdapter {
+        public List<String> classList = new ArrayList<>();
+
+        public void visit(ClassOrInterfaceDeclaration cd, Object arg) {
+            for(ClassOrInterfaceDeclaration c : cd.findAll(ClassOrInterfaceDeclaration.class)){
+                classList.add(c.getNameAsString());
+            }
+        }
+
+        public List<String> getClassList(){
+            return classList;
+        }
+    }
+
+    // Temporary Fields (Medium - Detects the presence of temporary fields in the class level)
     public static class TemporaryFieldVisitor extends VoidVisitorAdapter {
 
         @Override
@@ -50,7 +97,7 @@ public class badSmells {
 
             for(String fieldName : fieldNamesList) {
                 if (!isFieldUsedWithinMethods(fd, fieldName)) {
-                    System.out.println("Temporary Field Detected: " + fieldName);
+                    System.out.println("Warning: Temporary Field Detected: " + fieldName + "\n");
                 }
             }
             super.visit(fd, arg);
@@ -105,13 +152,19 @@ public class badSmells {
         @Override
         public void visit(MethodCallExpr call, Object arg) {
             if (call.getScope().isPresent() && call.getScope().get() instanceof MethodCallExpr) {
-                System.out.println("Warning! Message Chain Detected: " + call.getScope().get() + " -> " + call.getName());
+                System.out.println("Warning! Message Chain Detected: " + call.getScope().get() + " -> " + call.getName() + "\n");
             }
             super.visit(call, arg);
         }
     }
 
     private static class MethodAndClassDeclarationVisitor extends VoidVisitorAdapter {
+
+        List<String> classList;
+
+        private MethodAndClassDeclarationVisitor(List<String> classList){
+            this.classList = classList;
+        }
 
         @Override
         public void visit(MethodDeclaration md, Object arg) {
@@ -135,23 +188,6 @@ public class badSmells {
 
             super.visit(md, arg);
         }
-//                           _____________________________________________________________________
-//                           | KEEP THE BELOW METHOD, JUST IN CASE (Works the same as md.findAll)|
-//                           ---------------------------------------------------------------------
-//        public int searchStatements(Node statementContents, int statementCounter) {
-//            if(statementContents.getChildNodes().size() > 1) {
-//                Node statement = statementContents.getChildNodes().get(1);
-//                for (Node statementLine : statement.getChildNodes()) {
-//                    System.out.println(statementLine + " statement line");
-//                    statementCounter++;
-//                    if ((statementLine.findAncestor(IfStmt.class).isPresent() || statementLine.findAncestor(WhileStmt.class).isPresent())
-//                            && statementLine.getChildNodes().size() > 1) {
-//                        searchStatements(statement, statementCounter);
-//                    }
-//                }
-//            }
-//            return statementCounter;
-//        }
 
         public void visit(ClassOrInterfaceDeclaration cd, Object arg) {
 
@@ -247,6 +283,36 @@ public class badSmells {
             }
             if(middleMan == true) // If middleMan is true then the class must be a middle man since there is not statement that adds functionality to the class
                 System.out.println("Warning: class " + cd.getNameAsString() + " is a middle man class!\n");
+
+
+            // Feature Envy (Hard) - this is defined as when a class calls more external methods than internal
+            Map<String, String> classVariables = new HashMap<>();  // Classes defined within the 'directoryPath' folder that could be used for feature envy mapped to the variable name of these data types
+            for(VariableDeclarator vd : cd.findAll(VariableDeclarator.class)){
+                if(classList.contains(vd.getTypeAsString())){
+                    classVariables.put(vd.getNameAsString(), vd.getTypeAsString());
+                }
+            }
+            for(MethodDeclaration md : cd.findAll(MethodDeclaration.class)){
+                for(Parameter p : md.getParameters()){
+                    if(classList.contains(p.getTypeAsString())){
+                        classVariables.put(p.getNameAsString(), p.getTypeAsString());
+                    }
+                }
+            }
+
+            int thisClassMethodCalls = 0;
+            int externalClassMethodCalls = 0;
+
+            for(MethodCallExpr e : cd.findAll(MethodCallExpr.class)) {
+                if(e.hasScope() && classVariables.containsKey(e.getScope().get().toString())){
+                    externalClassMethodCalls++; // If the method call is on a variable that's data type is a class from 'directoryPath' then that is an external method call
+                } else {
+                    thisClassMethodCalls++; // Otherwise the method call is calling an internal method or a method of a standard Java data type
+                }
+            }
+
+            if(externalClassMethodCalls > thisClassMethodCalls)
+                System.out.println("Warning: class " + cd.getNameAsString() + " contains feature envy!\n");
 
             super.visit(cd, arg);
         }
