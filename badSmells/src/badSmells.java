@@ -151,8 +151,9 @@ public class badSmells {
 
         @Override
         public void visit(MethodCallExpr call, Object arg) {
-            if (call.getScope().isPresent() && call.getScope().get() instanceof MethodCallExpr) {
-                System.out.println("Warning! Message Chain Detected: " + call.getScope().get() + " -> " + call.getName() + "\n");
+            Optional<Expression> scope = call.getScope();
+            if (scope.isPresent() && scope.get() instanceof MethodCallExpr) {
+                System.out.println("Warning! Message Chain Detected: " + scope.get() + " -> " + call.getName() + "\n");
             }
             super.visit(call, arg);
         }
